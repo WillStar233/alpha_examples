@@ -4,21 +4,7 @@ import pytest
 
 from typing import Iterable, List
 
-# 假设未来实现的接口
-class DataAdapter:
-    def __init__(self, get_data, get_data_chunk_by_code=None, get_data_chunk_by_date=None):
-        self.get_data = get_data
-        self.get_data_chunk_by_code = get_data_chunk_by_code
-        self.get_data_chunk_by_date = get_data_chunk_by_date
-
-    def fetch(self, universe: List[str], start: dt.date, end: dt.date, fields: List[str], freq: str) -> pl.DataFrame:
-        raise NotImplementedError
-
-    def iter_by_code(self, universe: List[str], start: dt.date, end: dt.date, fields: List[str], freq: str, batch_size: int) -> Iterable[pl.DataFrame]:
-        raise NotImplementedError
-
-    def iter_by_date(self, universe: List[str], start: dt.date, end: dt.date, fields: List[str], freq: str, chunk_days: int) -> Iterable[pl.DataFrame]:
-        raise NotImplementedError
+from data.adapter import DataAdapter
 
 
 @pytest.fixture()
@@ -50,14 +36,12 @@ def mock_get_data_chunk_by_date(symbols, start, end, freq, fields):
 
 
 def test_fetch_returns_polars_df_with_required_columns(sample_data, monkeypatch):
-    # stub get_data 返回 pandas/或 polars，DataAdapter 应统一为 polars
-    import pandas as pd
-
+    # stub get_data 返回 polars
     def _get_data(symbols, start, end, freq, fields):
         df = sample_data.filter(pl.col("symbol").is_in(symbols)).filter(
             (pl.col("date") >= start) & (pl.col("date") <= end)
         ).select(["date", "symbol", *fields])
-        return df.to_pandas()
+        return df
 
     adapter = DataAdapter(_get_data)
     start, end = dt.date(2024, 1, 3), dt.date(2024, 1, 7)

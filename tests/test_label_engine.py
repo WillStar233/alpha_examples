@@ -2,8 +2,7 @@ import polars as pl
 import datetime as dt
 
 
-def make_forward_return(df_px: pl.DataFrame, horizon: int) -> pl.DataFrame:
-    raise NotImplementedError
+from label.label_engine import make_forward_return
 
 
 def test_forward_return_long_table():

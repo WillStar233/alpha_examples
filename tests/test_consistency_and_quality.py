@@ -5,8 +5,8 @@ import datetime as dt
 def calc_factor(df: pl.DataFrame, lag: int) -> pl.DataFrame:
     # 简单的 ts_mean(close, 3) - ts_mean(close, 5) 替代实现，用于质量测试
     df = df.sort(["symbol", "date"]).with_columns([
-        pl.col("close").rolling_mean(window_size=3, min_periods=3).over("symbol").alias("ma3"),
-        pl.col("close").rolling_mean(window_size=5, min_periods=5).over("symbol").alias("ma5"),
+        pl.col("close").rolling_mean(window_size=3, min_samples=3).over("symbol").alias("ma3"),
+        pl.col("close").rolling_mean(window_size=5, min_samples=5).over("symbol").alias("ma5"),
     ])
     out = (
         df.with_columns((pl.col("ma3") - pl.col("ma5")).alias("raw"))
@@ -36,7 +36,7 @@ def test_full_vs_incremental_and_chunk_consistency():
     ])
     inc = calc_factor(inc_window, lag).filter(pl.col("date") >= dates[-5])
 
-    assert full.filter(pl.col("date").is_in(dates[-5:])).sort(["date", "symbol"]).frame_equal(
+    assert full.filter(pl.col("date").is_in(dates[-5:])).sort(["date", "symbol"]).equals(
         inc.sort(["date", "symbol"]) 
     )
 
@@ -50,12 +50,12 @@ def test_full_vs_incremental_and_chunk_consistency():
         chunked_parts.append(part)
     chunked = pl.concat(chunked_parts).sort(["date", "symbol"]) 
 
-    assert full.sort(["date", "symbol"]).frame_equal(chunked)
+    assert full.sort(["date", "symbol"]).equals(chunked)
 
 
 def test_missing_values_and_alignment_rules():
     # 插入缺失，检查 drop_nulls 后一致
-    dates = [dt.date(2024, 3, d) for d in range(1, 10)]
+    dates = [dt.date(2024, 3, d) for d in range(1, 16)]
     rows = []
     for date in dates:
         rows.append({"date": date, "symbol": "AAA", "close": (None if date.day in (3, 4) else 100 + date.day)})
@@ -63,4 +63,6 @@ def test_missing_values_and_alignment_rules():
     out = calc_factor(df, lag=1)
     # 应无 NaN，且日期 >= 第5天才开始有值（五日均线）+ lag
     assert out.select(pl.col("value").is_null().any()).item() is False
-    assert out["date"].min() >= dates[6]  # 5日均线的第5日是 d=5，再 shift 1 → d>=6
+    min_date = out.get_column("date").min()
+    assert min_date is not None
+    assert min_date >= dates[6]  # 5日均线的第5日是 d=5，再 shift 1 → d>=6

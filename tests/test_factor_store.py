@@ -1,28 +1,7 @@
 import polars as pl
 import datetime as dt
 
-class FactorStore:
-    def __init__(self):
-        self._frames = {}
-
-    def write(self, factor_name: str, df: pl.DataFrame):
-        if factor_name not in self._frames:
-            self._frames[factor_name] = pl.DataFrame({"date": [], "symbol": [], "value": []})
-        self._frames[factor_name] = (
-            pl.concat([self._frames[factor_name], df])
-            .sort(["date", "symbol"]).unique(subset=["date", "symbol"], keep="last")
-        )
-
-    def overwrite(self, factor_name: str, df: pl.DataFrame):
-        self._frames[factor_name] = df.sort(["date", "symbol"]).unique(subset=["date", "symbol"], keep="last")
-
-    def read(self, factor_name: str, start: dt.date | None = None, end: dt.date | None = None):
-        df = self._frames.get(factor_name, pl.DataFrame({"date": [], "symbol": [], "value": []}))
-        if start is not None:
-            df = df.filter(pl.col("date") >= start)
-        if end is not None:
-            df = df.filter(pl.col("date") <= end)
-        return df
+from store.factor_store import FactorStore
 
 
 def test_store_idempotent_write_and_overwrite(tmp_path):

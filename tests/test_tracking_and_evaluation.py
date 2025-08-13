@@ -92,6 +92,13 @@ def test_mlflow_logging_and_evaluators(monkeypatch, tmp_path):
         metrics_bt, report = metrics_bt
     logger.log_metrics(metrics_bt)
     logger.log_artifact_text("generated_code.py", "print('hi')")
+
+    # 生成代码与哈希留痕（模拟）
+    spec_hash = "spec_abc"
+    data_hash = "data_xyz"
+    logger.log_params({"spec_hash": spec_hash, "data_hash": data_hash})
+    logger.log_artifact_text("generated_code.py", "# code...\nFACTOR = ts_mean(close, 3)")
+
     logger.end()
 
     assert calls["params"] is not None and calls["metrics"] is not None
