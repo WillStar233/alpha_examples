@@ -1,0 +1,18 @@
+[project]
+name = "alpha-framework"
+version = "0.1.0"
+requires-python = ">=3.10"
+dependencies = [
+  "polars>=1.2.1",
+  "pyarrow>=16.1.0",
+  "mlflow>=2.14.1",
+  "expr_codegen>=0.2.8",
+  "polars-ta>=0.8.1",
+  "duckdb>=1.0.0",
+]
+
+[tool.pytest.ini_options]
+minversion = "7.0"
+addopts = "-q"
+testpaths = ["tests"]
+pythonpath = ["src"]
