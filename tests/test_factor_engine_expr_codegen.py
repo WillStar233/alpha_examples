@@ -62,7 +62,7 @@ def run_codegen(df: pl.DataFrame, blocks, output_var: str, lag: int) -> pl.DataF
     if "asset" in out.columns and "symbol" not in out.columns:
         out = out.rename({"asset": "symbol"})
     # 产出列名 output_var，按 symbol shift(lag)，并归一化为长表
-    out = out.with_columns(pl.col(output_var).shift(lag).over("symbol").alias("value"))
+    out = out.select(["date", "symbol", output_var]).rename({output_var: "value"})
     out = out.select(["date", "symbol", "value"]).drop_nulls("value")
     return out
 
@@ -91,12 +91,12 @@ def test_full_vs_incremental_consistency(monkeypatch, toy_df):
     store = FactorStore()
 
     class Engine(FactorEngine):
-        def run_expr_codegen(self, df, blocks, output_var, lag):
-            return run_codegen(df, blocks, output_var, lag), "# generated code"
+        def run_expr_codegen(self, df, blocks, output_var):
+            return run_codegen(df, blocks, output_var, lag=None), "# generated code"
 
         def compute_full(self, spec, universe, start, end):
             df = adapter.fetch(universe, start, end, spec.inputs, spec.freq)
-            out, _ = self.run_expr_codegen(df, spec.blocks, spec.output_var, spec.lag)
+            out, _ = self.run_expr_codegen(df, spec.blocks, spec.output_var)
             self.store.overwrite(spec.name, out)
             return out
 
@@ -104,7 +104,7 @@ def test_full_vs_incremental_consistency(monkeypatch, toy_df):
             d0, d1 = min(new_dates), max(new_dates)
             lookback_start = d0 - dt.timedelta(days=spec.lookback + 2)
             df = adapter.fetch(universe, lookback_start, d1, spec.inputs, spec.freq)
-            out, _ = self.run_expr_codegen(df, spec.blocks, spec.output_var, spec.lag)
+            out, _ = self.run_expr_codegen(df, spec.blocks, spec.output_var)
             out = out.filter((pl.col("date") >= d0) & (pl.col("date") <= d1))
             self.store.write(spec.name, out)
             return out
@@ -116,7 +116,7 @@ def test_full_vs_incremental_consistency(monkeypatch, toy_df):
                 chunk_start = chunk["date"].min()
                 lb_start = chunk_start - dt.timedelta(days=spec.lookback + 2)
                 base = adapter.fetch(universe, lb_start, chunk["date"].max(), spec.inputs, spec.freq)
-                out, _ = self.run_expr_codegen(base, spec.blocks, spec.output_var, spec.lag)
+                out, _ = self.run_expr_codegen(base, spec.blocks, spec.output_var)
                 out = out.filter((pl.col("date") >= chunk_start) & (pl.col("date") <= chunk["date"].max()))
                 outs.append(out)
             merged = pl.concat(outs).sort(["date", "symbol"]) if outs else pl.DataFrame()
