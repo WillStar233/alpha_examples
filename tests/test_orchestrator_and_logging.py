@@ -5,6 +5,8 @@ from data.adapter import DataAdapter
 from store.factor_store import FactorStore
 from engine.factor_engine import FactorEngine, FactorSpec
 from orchestrator.factor_orchestrator import FactorOrchestrator
+from eval.alphainspect_runner import AlphaInspectRunner
+from eval.lightbt_runner import LightBTRunner
 
 
 class DummyLogger:
@@ -69,8 +71,8 @@ def test_orchestrator_full_pipeline(monkeypatch, tmp_path):
     spec = FactorSpec(name="demo", freq="1d", inputs=["close"], blocks=[_block], output_var="FACTOR", lookback=5, lag=1)
 
     logger = DummyLogger()
-    ai = DummyAI()
-    bt = DummyBT()
+    ai = AlphaInspectRunner()
+    bt = LightBTRunner()
 
     orch = FactorOrchestrator(engine, logger=logger, ai_runner=ai, bt_runner=bt)
 

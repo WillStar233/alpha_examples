@@ -54,8 +54,9 @@ class FactorOrchestrator:
         raw_px = self.engine.data.fetch(universe, start, end, ["close"], spec.freq)
         df_label = make_forward_return(raw_px, label_horizon)
         # 3) eval/backtest
-        metrics_ai = self.ai.run(df_factor, df_label)
-        metrics_bt = self.bt.run(df_factor, {"label_df": df_label})
+        metrics_ai = self.ai.run(df_factor, df_label, factor_name=spec.name, label_name=f"RET_FWD_{label_horizon}", output_html=os.path.join(os.getcwd(), f"{spec.name}_ai.html"))
+        # LightBT：需要价格
+        metrics_bt = self.bt.run(df_factor, raw_px.rename({"symbol": "symbol", "close": "close"}))
         # 4) log
         run_name = f"{spec.name}_{spec.freq}_full"
         self.logger.start(run_name)
@@ -95,8 +96,8 @@ class FactorOrchestrator:
         df_factor = self.engine.compute_incremental(spec, universe, new_dates)
         raw_px = self.engine.data.fetch(universe, d0, d1, ["close"], spec.freq)
         df_label = make_forward_return(raw_px, label_horizon)
-        metrics_ai = self.ai.run(df_factor, df_label)
-        metrics_bt = self.bt.run(df_factor, {"label_df": df_label})
+        metrics_ai = self.ai.run(df_factor, df_label, factor_name=spec.name, label_name=f"RET_FWD_{label_horizon}")
+        metrics_bt = self.bt.run(df_factor, raw_px)
         run_name = f"{spec.name}_{spec.freq}_inc"
         self.logger.start(run_name)
         self.logger.log_params({"dates": f"{d0}:{d1}", "factor": spec.name})
