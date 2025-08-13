@@ -3,7 +3,6 @@ import os
 import tempfile
 import polars as pl
 import datetime as dt
-import mlflow
 import pytest
 
 # 未来实现的接口占位
